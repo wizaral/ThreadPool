@@ -3,13 +3,14 @@
 #include <condition_variable>
 #include <deque>
 #include <functional>
+#include <future>
 #include <mutex>
 #include <thread>
 #include <vector>
 
 namespace al {
 
-class ThreadPool final {
+class ThreadPoolPackaged final {
     using Task = std::function<void()>;
 
     std::vector<std::thread> m_threads;
@@ -25,34 +26,42 @@ class ThreadPool final {
 #endif
 
 public:
-    ThreadPool() = default;
+    ThreadPoolPackaged() = default;
 
-    explicit ThreadPool(size_t amount) {
+    explicit ThreadPoolPackaged(size_t amount) {
         start(amount);
     }
 
-    ThreadPool(const ThreadPool &) = delete;
-    ThreadPool(ThreadPool &&) = delete;
-    ThreadPool &operator=(const ThreadPool &) = delete;
-    ThreadPool &operator=(ThreadPool &&) = delete;
+    ThreadPoolPackaged(const ThreadPoolPackaged &) = delete;
+    ThreadPoolPackaged(ThreadPoolPackaged &&) = delete;
+    ThreadPoolPackaged &operator=(const ThreadPoolPackaged &) = delete;
+    ThreadPoolPackaged &operator=(ThreadPoolPackaged &&) = delete;
 
-    ~ThreadPool() {
+    ~ThreadPoolPackaged() {
         if (m_terminate == false) {
             stop();
         }
     }
 
-    void add_task(Task task) {
+    template <class Func, class... Args>
+    auto add_task(Func &&task, Args &&...args) {
+        auto wrapper = std::make_shared<std::packaged_task<decltype(task(args...))()>>(
+            std::forward<Func>(task), std::forward<Args>(args)...);
+
         {
             std::unique_lock lock(m_tasks_mutex);
-            m_tasks.emplace_back(std::move(task));
+            m_tasks.emplace_back([wrapper] {
+                (*wrapper)();
+            });
         }
+
         m_condition.notify_one();
+        return wrapper->get_future();
     }
 
     void start(size_t amount) {
         for (size_t i = 0; i < amount; ++i) {
-            m_threads.emplace_back(&ThreadPool::runner, this);
+            m_threads.emplace_back(&ThreadPoolPackaged::runner, this);
         }
     }
 
