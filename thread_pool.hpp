@@ -7,6 +7,8 @@
 #include <thread>
 #include <vector>
 
+namespace al {
+
 class ThreadPool final {
     using Task = std::function<void()>;
 
@@ -117,3 +119,5 @@ private:
         }
     }
 };
+
+} // namespace al
