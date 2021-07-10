@@ -20,7 +20,7 @@ class ThreadPoolPackaged final {
     std::condition_variable m_condition;
     std::atomic_bool m_terminate{false};
 
-#if defined(THREAD_POOL_PACKEGED_WAIT)
+#if defined(THREAD_POOL_PACKAGED_WAIT)
     uint64_t m_working_threads = 0;
     std::condition_variable m_finished;
 #endif
@@ -65,7 +65,7 @@ public:
         }
     }
 
-#if defined(THREAD_POOL_PACKEGED_WAIT)
+#if defined(THREAD_POOL_PACKAGED_WAIT)
     void wait() {
         std::unique_lock lock(m_tasks_mutex);
 
@@ -113,14 +113,14 @@ private:
             task = std::move(m_tasks.front());
             m_tasks.pop_front();
 
-#if defined(THREAD_POOL_PACKEGED_WAIT)
+#if defined(THREAD_POOL_PACKAGED_WAIT)
             ++m_working_threads;
             lock.unlock();
 #endif
 
             task();
 
-#if defined(THREAD_POOL_PACKEGED_WAIT)
+#if defined(THREAD_POOL_PACKAGED_WAIT)
             lock.lock();
             --m_working_threads;
             m_finished.notify_one();
