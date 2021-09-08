@@ -106,9 +106,9 @@ private:
 
 #if defined(THREAD_POOL_WAIT)
             ++m_working_threads;
-            lock.unlock();
 #endif
 
+            lock.unlock();
             task();
 
 #if defined(THREAD_POOL_WAIT)
